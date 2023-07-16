@@ -1,18 +1,28 @@
 
 package functions;
 
-import com.google.cloud.functions.HttpFunction;
-import com.google.cloud.functions.HttpRequest;
-import com.google.cloud.functions.HttpResponse;
-import java.io.BufferedWriter;
-import java.io.IOException;
+import com.google.cloud.functions.Context;
+import com.google.cloud.functions.RawBackgroundFunction;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
-public class HelloWorld implements HttpFunction {
-  // Simple function to return "Hello World"
+public class HelloWorld implements RawBackgroundFunction {
+
   @Override
-  public void service(HttpRequest request, HttpResponse response)
-      throws IOException {
-    BufferedWriter writer = response.getWriter();
-    writer.write("Hello World!");
+  public void accept(String json, Context context) throws Exception {
+    Gson gson = new Gson();
+    JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
+
+    // Access the Firestore event data
+    JsonObject data = jsonObject.getAsJsonObject("data");
+    String documentId = data.get("documentId").getAsString();
+    JsonObject documentFields = data.getAsJsonObject("fields");
+
+    // Process the event data
+    // ...
+
+    // Example: Print the document ID and fields
+    System.out.println("Document ID: " + documentId);
+    System.out.println("Fields: " + documentFields);
   }
 }

@@ -1,18 +1,28 @@
 
 package functions;
 
-import com.google.cloud.functions.HttpFunction;
-import com.google.cloud.functions.HttpRequest;
-import com.google.cloud.functions.HttpResponse;
-import java.io.BufferedWriter;
-import java.io.IOException;
+import com.google.cloud.functions.BackgroundFunction;
+import com.google.cloud.functions.Context;
+import com.google.events.cloud.storage.v1.StorageObjectData;
+import com.google.gson.Gson;
 
-public class HelloWorld implements HttpFunction {
-  // Simple function to return "Hello World"
+public class HelloWorld implements BackgroundFunction<StorageObjectData> {
+
+  public HelloWorld() {
+    new Gson();
+  }
+
   @Override
-  public void service(HttpRequest request, HttpResponse response)
-      throws IOException {
-    BufferedWriter writer = response.getWriter();
-    writer.write("Hello World!");
+  public void accept(StorageObjectData storageObjectData, Context context) {
+    String bucket = storageObjectData.getBucket();
+    String object = storageObjectData.getName();
+    String eventType = context.eventType();
+    String eventId = context.eventId();
+
+    System.out.println("Received Cloud Storage event:");
+    System.out.println("Bucket: " + bucket);
+    System.out.println("Object: " + object);
+    System.out.println("Event Type: " + eventType);
+    System.out.println("Event ID: " + eventId);
   }
 }
