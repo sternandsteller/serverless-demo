@@ -1,7 +1,9 @@
 package excel;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -10,6 +12,12 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Excel {
+	private static final String enumCOLUMNS_COL_HEADERS = "enum COLUMNS_COL_HEADERS";
+	private static final String enumCOLUMNS_ROW_HEADERS = "enum COLUMNS_ROW_HEADERS";;
+	private static final String enumDOCUMENTS_COL_HEADERS = "enum DOCUMENTS_COL_HEADERS";
+	private static final String enumDOCUMENTS_ROW_HEADERS = "enum DOCUMENTS_ROW_HEADERS";
+	private static final String COLUMN_SHEET_NAME = "columns";
+	private static final String DOCUMENTS_SHEET_NAME = "documents";
 
 	enum COLUMNS_COL_HEADERS {
 		id, label, required, calculated, repeatable
@@ -20,7 +28,7 @@ public class Excel {
 	}
 
 	enum DOCUMENTS_COL_HEADERS {
-		id, label, no_of_columns, column_1, column_2, column_3, column_4, column_5, column_6
+		id, label, column_1, column_2, column_3, column_4, column_5, column_6
 	}
 
 	enum DOCUMENTS_ROW_HEADERS {
@@ -28,27 +36,44 @@ public class Excel {
 	}
 
 	static final String EXCEL_FILE_NAME = "C:\\Users\\salim\\OneDrive\\Documents\\GitHub\\serverless-demo\\cli\\googleSheet\\maas_compaign_xlsheet.xlsx";
-	private static final int COLUMN_SHEET_NO = 1;
 
-	private static final String enumCOLUMNS_COL_HEADERS = "enum COLUMNS_COL_HEADERS";
-	private static final String enumCOLUMNS_ROW_HEADERS = "enum COLUMNS_ROW_HEADERS";;
-	private static final String enumDOCUMENTS_COL_HEADERS = "enum DOCUMENTS_COL_HEADERS";
-	private static final String enumDOCUMENTS_ROW_HEADERS = "enum DOCUMENTS_ROW_HEADERS";;
+	Excel() throws Exception {
+		XSSFWorkbook workbook = open(EXCEL_FILE_NAME);
+		HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> columns = getColumns(workbook);
 
-	private XSSFWorkbook workbook;
+		close(workbook);
+	}
 
-	public Excel() throws Exception {
+	public HashMap<DOCUMENTS_ROW_HEADERS, HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>>> getDocumentColumns(
+			XSSFWorkbook workbook, HashMap<DOCUMENTS_ROW_HEADERS, HashMap<DOCUMENTS_COL_HEADERS, String>> documents,
+			HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> columns) throws Exception {
+
+		HashMap<DOCUMENTS_ROW_HEADERS, HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>>> documentsColumns = new HashMap<DOCUMENTS_ROW_HEADERS, HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>>>();
+
+		for (DOCUMENTS_ROW_HEADERS document : documents.keySet()) {
+			HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> hDocumentColumn = new HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>>();
+			for (DOCUMENTS_COL_HEADERS documentColumn : documents.get(document).keySet()) {
+				COLUMNS_ROW_HEADERS columnRowHeader = COLUMNS_ROW_HEADERS.valueOf(documentColumn.toString());
+				hDocumentColumn.put(columnRowHeader, columns.get(columnRowHeader));
+			}
+			documentsColumns.put(document, hDocumentColumn);
+		}
+		return documentsColumns;
+	}
+
+	public HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> getColumns(XSSFWorkbook workbook)
+			throws Exception {
 
 		FileInputStream file = new FileInputStream(EXCEL_FILE_NAME);
 		workbook = new XSSFWorkbook(file);
 		file.close();
 
-		Sheet sheet = workbook.getSheetAt(COLUMN_SHEET_NO);
+		Sheet sheet = workbook.getSheet(COLUMN_SHEET_NAME);
 		CodeGen code = new CodeGen();
 		code.start(enumCOLUMNS_COL_HEADERS);
-		HashMap<COLUMNS_ROW_HEADERS, HashMap<COLUMNS_COL_HEADERS, String>> hRows = new HashMap<COLUMNS_ROW_HEADERS, HashMap<COLUMNS_COL_HEADERS, String>>();
+		HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> hRows = new HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>>();
 		Vector<COLUMNS_COL_HEADERS> vCols = new Vector<COLUMNS_COL_HEADERS>();
-		HashMap<COLUMNS_COL_HEADERS, String> hCols = new HashMap<COLUMNS_COL_HEADERS, String>();
+		LinkedHashMap<COLUMNS_COL_HEADERS, String> hCols = new LinkedHashMap<COLUMNS_COL_HEADERS, String>();
 		for (Row row : sheet) {
 			if (row.getRowNum() == 0) {
 				for (Cell cell : row) {
@@ -63,7 +88,8 @@ public class Excel {
 				code.start(enumCOLUMNS_ROW_HEADERS);
 			} else {
 				@SuppressWarnings("unchecked")
-				HashMap<COLUMNS_COL_HEADERS, String> clonedHcol = (HashMap<COLUMNS_COL_HEADERS, String>) hCols.clone();
+				LinkedHashMap<COLUMNS_COL_HEADERS, String> clonedHcol = (LinkedHashMap<COLUMNS_COL_HEADERS, String>) hCols
+						.clone();
 				for (Cell cell : row) {
 					if (cell.getColumnIndex() == 0) {
 						code.add(cell.toString());
@@ -82,18 +108,26 @@ public class Excel {
 		code.finish();
 		workbook.close();
 		System.out.println(hRows);
+		return hRows;
 	}
 
-	public Excel(int documentSheetNumber) throws Exception {
-
-		FileInputStream file = new FileInputStream(EXCEL_FILE_NAME);
-		workbook = new XSSFWorkbook(file);
+	public XSSFWorkbook open(String excelFileName) throws Exception {
+		FileInputStream file = new FileInputStream(excelFileName);
+		XSSFWorkbook workbook = new XSSFWorkbook(file);
 		file.close();
+		return workbook;
+	}
 
-		Sheet sheet = workbook.getSheetAt(documentSheetNumber);
+	public void close(XSSFWorkbook workbook) throws IOException {
+		workbook.close();
+	}
+
+	public void getDocuments(XSSFWorkbook workbook) throws Exception {
+
+		HashMap<DOCUMENTS_ROW_HEADERS, HashMap<DOCUMENTS_COL_HEADERS, String>> hRows = new HashMap<DOCUMENTS_ROW_HEADERS, HashMap<DOCUMENTS_COL_HEADERS, String>>();
+		Sheet sheet = workbook.getSheet(DOCUMENTS_SHEET_NAME);
 		CodeGen code = new CodeGen();
 		code.start(enumDOCUMENTS_COL_HEADERS);
-		HashMap<DOCUMENTS_ROW_HEADERS, HashMap<DOCUMENTS_COL_HEADERS, String>> hRows = new HashMap<DOCUMENTS_ROW_HEADERS, HashMap<DOCUMENTS_COL_HEADERS, String>>();
 		Vector<DOCUMENTS_COL_HEADERS> vCols = new Vector<DOCUMENTS_COL_HEADERS>();
 		HashMap<DOCUMENTS_COL_HEADERS, String> hCols = new HashMap<DOCUMENTS_COL_HEADERS, String>();
 		for (Row row : sheet) {
@@ -122,7 +156,6 @@ public class Excel {
 						;
 					} else {
 						try {
-							clonedHcol.put(vCols.get(cell.getColumnIndex()), getString(cell));
 						} catch (Exception e) {
 						}
 						;
