@@ -36,12 +36,30 @@ public class Excel {
 	}
 
 	static final String EXCEL_FILE_NAME = "C:\\Users\\salim\\OneDrive\\Documents\\GitHub\\serverless-demo\\cli\\googleSheet\\maas_compaign_xlsheet.xlsx";
+	private static final String COLUMNS_JAVA = "Columns.java";
+	private static final String C_JAVA = "C.java";
 
 	Excel() throws Exception {
 		XSSFWorkbook workbook = open(EXCEL_FILE_NAME);
 		HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> columns = getColumns(workbook);
-
+		getClasses(columns);
 		close(workbook);
+	}
+
+	private void getClasses(HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>> columns)
+			throws IOException {
+		CodeGen code = new CodeGen();
+		code.start(CodeGen.PUBLIC_CLASS, CodeGen.COLUMNS);
+		for (COLUMNS_ROW_HEADERS col : columns.keySet()) {
+			code.start(CodeGen.PUBLIC_CLASS, col.toString());
+			HashMap<COLUMNS_COL_HEADERS, String> hCol = columns.get(col);
+			for (COLUMNS_COL_HEADERS attributes : hCol.keySet()) {
+				code.getter(attributes.toString(), hCol.get(attributes));
+			}
+			code.end();
+		}
+		code.end();
+		code.finish(COLUMNS_JAVA);
 	}
 
 	public HashMap<DOCUMENTS_ROW_HEADERS, HashMap<COLUMNS_ROW_HEADERS, LinkedHashMap<COLUMNS_COL_HEADERS, String>>> getDocumentColumns(
@@ -105,9 +123,8 @@ public class Excel {
 			}
 		}
 		code.end();
-		code.finish();
+		code.finish(C_JAVA);
 		workbook.close();
-		System.out.println(hRows);
 		return hRows;
 	}
 
@@ -164,9 +181,8 @@ public class Excel {
 			}
 		}
 		code.end();
-		code.finish();
+		code.finish(C_JAVA);
 		workbook.close();
-		System.out.println(hRows);
 	}
 
 	public static String getString(Cell cell) {
