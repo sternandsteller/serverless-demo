@@ -8,21 +8,22 @@ import com.google.gson.JsonObject;
 
 public class HelloWorld implements RawBackgroundFunction {
 
+  private static final Gson gson = new Gson();
+
   @Override
-  public void accept(String json, Context context) throws Exception {
-    Gson gson = new Gson();
-    JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
+  public void accept(String json, Context context) {
+    JsonObject body = gson.fromJson(json, JsonObject.class);
+    System.out.println("Function triggered by event on: " + context.resource());
+    System.out.println("Event type: " + context.eventType());
 
-    // Access the Firestore event data
-    JsonObject data = jsonObject.getAsJsonObject("data");
-    String documentId = data.get("documentId").getAsString();
-    JsonObject documentFields = data.getAsJsonObject("fields");
+    if (body != null && body.has("oldValue")) {
+      System.out.println("Old value:");
+      System.out.println(body.get("oldValue").getAsString());
+    }
 
-    // Process the event data
-    // ...
-
-    // Example: Print the document ID and fields
-    System.out.println("Document ID: " + documentId);
-    System.out.println("Fields: " + documentFields);
+    if (body != null && body.has("value")) {
+      System.out.println("New value:");
+      System.out.println(body.get("value").getAsString());
+    }
   }
 }
